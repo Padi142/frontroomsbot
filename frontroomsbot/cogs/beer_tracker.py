@@ -17,6 +17,7 @@ def ts_to_prague_time(ts: datetime) -> datetime:
         ts = ts.replace(tzinfo=ZoneInfo("UTC"))
     return ts.astimezone(prague_tz)
 
+
 def get_drink_emoji(drink_type: Literal["beer", "cider"]) -> str:
     if drink_type == "beer":
         return "🍺"
@@ -81,7 +82,8 @@ class BeerTrackerCog(commands.Cog):
             )
         elif drink_type == "cider":
             await interaction.response.send_message(
-                f"{target_user.mention} has now drunk **{user_data['total_ciders']}** ciders total! {get_drink_emoji(drink_type)} (Fuj ble 🤒)"
+                f"{target_user.mention} has now drunk **{user_data['total_ciders']}** "
+                f"ciders total! {get_drink_emoji(drink_type)} (Fuj ble 🤒)"
             )
         else:
             await interaction.response.send_message(
@@ -115,14 +117,14 @@ class BeerTrackerCog(commands.Cog):
         if drink_type == "all":
             all_beers = user_data["beers"]
         elif drink_type == "beer":
-            all_beers = [b for b in user_data["beers"] if b.get("type", "beer") == "beer"]
+            all_beers = [
+                b for b in user_data["beers"] if b.get("type", "beer") == "beer"
+            ]
         elif drink_type == "cider":
             all_beers = [b for b in user_data["beers"] if b.get("type") == "cider"]
 
         # sort by newest
-        all_beers = sorted(
-            all_beers, key=lambda x: x["timestamp"], reverse=True
-        )
+        all_beers = sorted(all_beers, key=lambda x: x["timestamp"], reverse=True)
         total_beers = len(all_beers)
         total_pages = (total_beers + limit - 1) // limit
 
@@ -149,7 +151,7 @@ class BeerTrackerCog(commands.Cog):
         for beer in paginated_beers:
             beer_time = ts_to_prague_time(beer["timestamp"]).strftime("%Y-%m-%d %H:%M")
             drink_type = beer.get("type", "beer")
-            emoji = get_drink_emoji(drink_type) 
+            emoji = get_drink_emoji(drink_type)
             embed.add_field(
                 name=f"{emoji} {beer_time}", value=f"`{beer['id']}`", inline=False
             )
@@ -218,11 +220,13 @@ class BeerTrackerCog(commands.Cog):
         # update database
         await db.beer_tracker.update_one(
             {"user_id": user_data["user_id"]},
-            {"$set": {
-                "beers": updated_beers, 
-                "total_beers": total_beers,
-                "total_ciders": total_ciders
-            }},
+            {
+                "$set": {
+                    "beers": updated_beers,
+                    "total_beers": total_beers,
+                    "total_ciders": total_ciders,
+                }
+            },
         )
 
         # build confirmation message
@@ -287,7 +291,9 @@ class BeerTrackerCog(commands.Cog):
             count = len(filtered_beers)
         else:
             if drink_type == "all":
-                count = user_data.get("total_beers", 0) + user_data.get("total_ciders", 0)
+                count = user_data.get("total_beers", 0) + user_data.get(
+                    "total_ciders", 0
+                )
             elif drink_type == "beer":
                 count = user_data.get("total_beers", 0)
             elif drink_type == "cider":
@@ -327,7 +333,9 @@ class BeerTrackerCog(commands.Cog):
                 continue
 
             if drink_type == "beer":
-                beers = [b for b in user_data["beers"] if b.get("type", "beer") == "beer"]
+                beers = [
+                    b for b in user_data["beers"] if b.get("type", "beer") == "beer"
+                ]
             elif drink_type == "cider":
                 beers = [b for b in user_data["beers"] if b.get("type") == "cider"]
             else:  # drink_type == "all"
@@ -346,21 +354,29 @@ class BeerTrackerCog(commands.Cog):
                     cutoff = now - timedelta(days=365)
 
                 filtered_beers = [
-                    b
-                    for b in beers
-                    if ts_to_prague_time(b["timestamp"]) >= cutoff
+                    b for b in beers if ts_to_prague_time(b["timestamp"]) >= cutoff
                 ]
                 total_count = len(filtered_beers)
             else:
                 if drink_type == "all":
-                    total_count = user_data.get("total_beers", 0) + user_data.get("total_ciders", 0)
+                    total_count = user_data.get("total_beers", 0) + user_data.get(
+                        "total_ciders", 0
+                    )
                 elif drink_type == "beer":
                     total_count = user_data.get("total_beers", 0)
                 elif drink_type == "cider":
                     total_count = user_data.get("total_ciders", 0)
 
             if total_count > 0:
-                leaderboard.append((user_data["username"], total_count, user_data["user_id"], user_data["total_beers"], user_data["total_ciders"]))
+                leaderboard.append(
+                    (
+                        user_data["username"],
+                        total_count,
+                        user_data["user_id"],
+                        user_data["total_beers"],
+                        user_data["total_ciders"],
+                    )
+                )
 
         # Sort by beer count (descending)
         leaderboard.sort(key=lambda x: x[1], reverse=True)
@@ -379,9 +395,13 @@ class BeerTrackerCog(commands.Cog):
         )
 
         description = []
-        for idx, (_, count, user_id, total_beers, total_ciders) in enumerate(leaderboard, 1):
-            if(total_ciders > 0):
-                description.append(f"**{idx}.** <@{user_id}> - **{count}** beers ({total_beers} beers, {total_ciders} ciders) 🍻")
+        for idx, (_, count, user_id, total_beers, total_ciders) in enumerate(
+            leaderboard, 1
+        ):
+            if total_ciders > 0:
+                description.append(
+                    f"**{idx}.** <@{user_id}> - **{count}** beers ({total_beers} beers, {total_ciders} ciders) 🍻"
+                )
             else:
                 description.append(f"**{idx}.** <@{user_id}> - **{count}** beers 🍻")
 
@@ -391,9 +411,15 @@ class BeerTrackerCog(commands.Cog):
     @app_commands.command(
         name="beer_last", description="Check when a user last had a beer"
     )
-    @app_commands.describe(user="The user to check (defaults to you)", drink_type="What type of drink? (Defaults to beer, can be cider 🍎 )")
+    @app_commands.describe(
+        user="The user to check (defaults to you)",
+        drink_type="What type of drink? (Defaults to beer, can be cider 🍎 )",
+    )
     async def beer_last(
-        self, interaction: discord.Interaction, user: Optional[discord.User] = None, drink_type: Optional[Literal["beer", "cider", "all"]] = "all"
+        self,
+        interaction: discord.Interaction,
+        user: Optional[discord.User] = None,
+        drink_type: Optional[Literal["beer", "cider", "all"]] = "all",
     ):
         target_user = user or interaction.user
         db = self.bot.db
@@ -410,7 +436,9 @@ class BeerTrackerCog(commands.Cog):
         if drink_type == "all":
             last_beer = user_data["beers"][-1]
         elif drink_type == "beer":
-            last_beer = [b for b in user_data["beers"] if b.get("type", "beer") == "beer"][-1]
+            last_beer = [
+                b for b in user_data["beers"] if b.get("type", "beer") == "beer"
+            ][-1]
         elif drink_type == "cider":
             last_beer = [b for b in user_data["beers"] if b.get("type") == "cider"][-1]
 
